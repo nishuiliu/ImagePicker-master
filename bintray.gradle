@@ -1,11 +1,11 @@
 apply plugin: 'com.github.dcendents.android-maven'
 apply plugin: 'com.jfrog.bintray'
 
-version = "0.6.1"              // 数据仓库依赖第三部分
+version = "0.0.1"              // 数据仓库依赖第三部分
 
 def siteUrl = 'https://github.com/jeasonlzy/ImagePicker'
 def gitUrl = 'https://github.com/jeasonlzy/ImagePicker.git'
-group = "com.lzy.widget"       // 数据仓库依赖第一部分
+group = "com.zj.widget"       // 数据仓库依赖第一部分
 
 install {
     repositories.mavenInstaller {
@@ -22,9 +22,9 @@ install {
                 }
                 developers {
                     developer {
-                        id 'jeasonlzy'                // 开发者信息
-                        name 'LiaoZiYao'              // 开发者信息
-                        email 'liaojeason@126.com'    // 开发者信息
+                        id 'Zhaojin'                // 开发者信息
+                        name 'Zhaojin'              // 开发者信息
+                        email ''    // 开发者信息
                     }
                 }
                 scm {
