@@ -2,10 +2,15 @@ package com.lzy.imagepicker.ui;
 
 import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
@@ -44,8 +49,8 @@ import java.util.List;
  * 2017-03-17
  *
  * @author nanchen
- *         新增可直接传递是否裁剪参数，以及直接拍照
- *         ================================================
+ * 新增可直接传递是否裁剪参数，以及直接拍照
+ * ================================================
  */
 public class ImageGridActivity extends ImageBaseActivity implements ImageDataSource.OnImagesLoadedListener, OnImageItemClickListener, ImagePicker.OnImageSelectedListener, View.OnClickListener {
 
@@ -366,9 +371,103 @@ public class ImageGridActivity extends ImageBaseActivity implements ImageDataSou
                     setResult(ImagePicker.RESULT_CODE_ITEMS, intent);   //单选不需要裁剪，返回数据
                     finish();
                 }
+                //刪除系統相冊生成的多余的一张图片
+                int lastImageId = getLastImageId(false);
+                if (lastImageId != -1) {
+                    removeImage(lastImageId, false);
+                }
             } else if (directPhoto) {
                 finish();
             }
+        }
+    }
+
+
+    /**
+     * 获取DCIM文件下最新一条拍照记录
+     *
+     * @return
+     */
+    protected int getLastImageId(boolean eqVideo) {
+        try {
+            //selection: 指定查询条件
+            String absolutePath = getDCIMCameraPath();
+            String ORDER_BY = MediaStore.Files.FileColumns._ID + " DESC";
+            String selection = eqVideo ? MediaStore.Video.Media.DATA + " like ?" :
+                    MediaStore.Images.Media.DATA + " like ?";
+            //定义selectionArgs：
+            String[] selectionArgs = {absolutePath + "%"};
+            Cursor imageCursor = this.getContentResolver().query(eqVideo ?
+                            MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+                            : MediaStore.Images.Media.EXTERNAL_CONTENT_URI, null,
+                    selection, selectionArgs, ORDER_BY);
+            if (imageCursor.moveToFirst()) {
+                int id = imageCursor.getInt(eqVideo ?
+                        imageCursor.getColumnIndex(MediaStore.Video.Media._ID)
+                        : imageCursor.getColumnIndex(MediaStore.Images.Media._ID));
+                long date = imageCursor.getLong(eqVideo ?
+                        imageCursor.getColumnIndex(MediaStore.Video.Media.DURATION)
+                        : imageCursor.getColumnIndex(MediaStore.Images.Media.DATE_ADDED));
+                int duration = dateDiffer(date);
+                imageCursor.close();
+                // DCIM文件下最近时间30s以内的图片，可以判定是最新生成的重复照片
+                return duration <= 30 ? id : -1;
+            } else {
+                return -1;
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            return -1;
+        }
+    }
+
+    /**
+     * 删除部分手机 拍照在DCIM也生成一张的问题
+     *
+     * @param id
+     * @param eqVideo
+     */
+    protected void removeImage(int id, boolean eqVideo) {
+        try {
+            ContentResolver cr = getContentResolver();
+            Uri uri = eqVideo ? MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+                    : MediaStore.Images.Media.EXTERNAL_CONTENT_URI;
+            String selection = eqVideo ? MediaStore.Video.Media._ID + "=?"
+                    : MediaStore.Images.Media._ID + "=?";
+            cr.delete(uri,
+                    selection,
+                    new String[]{Long.toString(id)});
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    public static String getDCIMCameraPath() {
+        String absolutePath;
+        try {
+            absolutePath = "%" + Environment.getExternalStoragePublicDirectory
+                    (Environment.DIRECTORY_DCIM).getAbsolutePath() + "/Camera";
+        } catch (Exception e) {
+            e.printStackTrace();
+            return "";
+        }
+        return absolutePath;
+    }
+
+    /**
+     * 判断两个时间戳相差多少秒
+     *
+     * @param d
+     * @return
+     */
+    public static int dateDiffer(long d) {
+        try {
+            long l1 = Long.parseLong(String.valueOf(System.currentTimeMillis()).substring(0, 10));
+            long interval = l1 - d;
+            return (int) Math.abs(interval);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return -1;
         }
     }
 
