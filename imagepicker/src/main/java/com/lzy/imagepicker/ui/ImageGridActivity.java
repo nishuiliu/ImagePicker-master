@@ -410,8 +410,8 @@ public class ImageGridActivity extends ImageBaseActivity implements ImageDataSou
                         : imageCursor.getColumnIndex(MediaStore.Images.Media.DATE_ADDED));
                 int duration = dateDiffer(date);
                 imageCursor.close();
-                // DCIM文件下最近时间30s以内的图片，可以判定是最新生成的重复照片
-                return duration <= 30 ? id : -1;
+                // DCIM文件下最近时间0.5s以内的图片，可以判定是最新生成的重复照片
+                return duration <= 1? id : -1;
             } else {
                 return -1;
             }
